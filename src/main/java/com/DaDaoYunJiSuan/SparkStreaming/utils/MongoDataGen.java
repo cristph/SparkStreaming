@@ -16,7 +16,7 @@ import java.util.Random;
  *
  * generate test data and insert into mongodb
  * =================================================
- * people:
+ * group:
  *
  * {
  *  "_id" :{ "$oid" : "59e47187fd6cea0b9cb4e715" },
@@ -33,7 +33,7 @@ import java.util.Random;
  * }
  *
  * ================================================
- * group:
+ * user:
  *
  * {
  *  "_id" : { "$oid" : "59e47187fd6cea0b9cb4e724" },
