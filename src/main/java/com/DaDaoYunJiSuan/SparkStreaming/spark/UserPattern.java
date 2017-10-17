@@ -74,6 +74,11 @@ public class UserPattern implements Serializable{
         this.joinTime = joinTime;
     }
 
+    public UserPattern addTags(String tagName){
+        tags.add(tagName);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "UserPattern{" +

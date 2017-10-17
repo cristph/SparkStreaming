@@ -142,11 +142,11 @@ public class MongoDataGen {
 
     private List<Document> getUDocs(Random rd) {
         List<Document> udocuments = new ArrayList<>();
-        int groupNum = rd.nextInt(gnameArrayLen - 1) + 1;
         for (int i = 0; i < unameArrayLen; i++) {
             Document udoc = new Document("url", "/people/" + i)
                     .append("name", unameArray[i]);
 
+            int groupNum = rd.nextInt(gnameArrayLen - 1) + 1;
             List<Document> joinGroups = new ArrayList<>();
             for (int j = 0; j < groupNum; j++) {
                 String tmp = "/group/" + rd.nextInt(gnameArrayLen);
@@ -155,7 +155,6 @@ public class MongoDataGen {
                             .append("time", new Date(System.currentTimeMillis() - ((long) rd.nextInt(1000000)))));
                 }
             }
-
             udoc.append("join_groups", joinGroups);
             udocuments.add(udoc);
         }
