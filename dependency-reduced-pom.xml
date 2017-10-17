@@ -25,7 +25,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.DaDaoYunJiSuan.SparkStreaming.spark.GettingStarted</mainClass>
+                  <mainClass>com.DaDaoYunJiSuan.SparkStreaming.utils.MongoDataGen</mainClass>
                 </transformer>
               </transformers>
               <filters>

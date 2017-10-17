@@ -94,14 +94,18 @@ public class MongoDataGen {
         }
     }
 
-    public void genData() {
-        MongoCollection<Document> collection = database.getCollection("testCollection");
+    public void genUserData() {
+        MongoCollection<Document> collection = database.getCollection("People");
+        Random rd = new Random();
+        List<Document> udocuments = getUDocs(rd);
+        collection.insertMany(udocuments);
+    }
+
+    public void genGroupData() {
+        MongoCollection<Document> collection = database.getCollection("Group");
         Random rd = new Random();
         List<Document> gdocuments = getGDocs(rd);
         collection.insertMany(gdocuments);
-
-        List<Document> udocuments = getUDocs(rd);
-        collection.insertMany(udocuments);
     }
 
     public void printColectionNames() {
@@ -163,15 +167,15 @@ public class MongoDataGen {
                 .anyMatch(document -> document.get("group_url").equals(gurl));
     }
 
-    public void delAll() {
-        MongoCollection<Document> collection = database.getCollection("testCollection");
+    public void delAll(String collectionName) {
+        MongoCollection<Document> collection = database.getCollection(collectionName);
         collection.drop();
-        System.out.println(database.getCollection("testCollection") == null ? "finish del collection" : "del collection fail");
+        System.out.println(database.getCollection(collectionName) == null ? "finish del collection "+collectionName : "del collection "+collectionName+" fail");
     }
 
 
-    public void search() {
-        MongoCollection<Document> collection = database.getCollection("testCollection");
+    public void search(String collectionName) {
+        MongoCollection<Document> collection = database.getCollection(collectionName);
         Block<Document> printBlock = new Block<Document>() {
             @Override
             public void apply(final Document document) {
@@ -182,13 +186,27 @@ public class MongoDataGen {
     }
 
     public static void main(String[] args) {
+
         MongoDataGen mongoDataGen = new MongoDataGen();
+
+        //ini connection
         mongoDataGen.ini();
         mongoDataGen.printColectionNames();
-        mongoDataGen.delAll();
+
+        //del collection
+        mongoDataGen.delAll("People");
+        mongoDataGen.delAll("Group");
+
+        //list exist collection names
         mongoDataGen.printColectionNames();
-        mongoDataGen.genData();
-        mongoDataGen.search();
+
+        //generate data
+        mongoDataGen.genUserData();
+        mongoDataGen.genGroupData();
+
+        //search
+        mongoDataGen.search("People");
+        mongoDataGen.search("Group");
     }
 
 }
