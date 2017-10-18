@@ -25,7 +25,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.DaDaoYunJiSuan.SparkStreaming.spark.SparkStreaming</mainClass>
+                  <mainClass>com.DaDaoYunJiSuan.SparkStreaming.spark.SparkRDD</mainClass>
                 </transformer>
               </transformers>
               <filters>

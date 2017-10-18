@@ -6,57 +6,67 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import javax.print.Doc;
+import java.util.*;
 
 /**
  * Created by Cristph on 2017/10/16.
- *
+ * <p>
  * generate test data and insert into mongodb
  * =================================================
  * group:
- *
+ * <p>
  * {
- *  "_id" :{ "$oid" : "59e47187fd6cea0b9cb4e715" },
- *  "url" : "/group/0",
- *  "name" : "group0",
- *  "tags" : ["tag6"]
+ * "_id" :{ "$oid" : "59e47187fd6cea0b9cb4e715" },
+ * "url" : "/group/0",
+ * "name" : "group0",
+ * "tags" : ["tag6"]
  * }
- *
+ * <p>
  * {
- *  "_id" : { "$oid" : "59e47187fd6cea0b9cb4e716" },
- *  " url" : "/group/1",
- *  "name" : "group1",
- *  "tags" : ["tag2", "tag3", "tag4", "tag7"]
+ * "_id" : { "$oid" : "59e47187fd6cea0b9cb4e716" },
+ * " url" : "/group/1",
+ * "name" : "group1",
+ * "tags" : ["tag2", "tag3", "tag4", "tag7"]
  * }
- *
+ * <p>
+ * {
+ * "_id" : { "$oid" : "59e47187fd6cea0b9cb4e716" },
+ * " url" : "/group/1",
+ * "name" : "group1",
+ * "tags" : ["tag2", "tag3", "tag4", "tag7"]，
+ * "members":[
+ * { "name" : "user0", "url":"people/1", "time" : { "$date" : 1508143309339 } },
+ * { "name" : "user0", "url":"people/1", "time" : { "$date" : 1508143309339 } }.
+ * { "name" : "user0", "url":"people/1", "time" : { "$date" : 1508143309339 } }
+ * ]
+ * }
+ * <p>
  * ================================================
  * user:
- *
+ * <p>
  * {
- *  "_id" : { "$oid" : "59e47187fd6cea0b9cb4e724" },
- *  "url" : "/people/0",
- *  "name" : "user0",
- *  "join_groups" : [
- *                  { "group_url" : "/group/3", "time" : { "$date" : 1508142666764 } },
- *                  { "group_url" : "/group/13", "time" : { "$date" : 1508142824565 } },
- *                  { "group_url" : "/group/0", "time" : { "$date" : 1508143309339 } }
- *                  ]
+ * "_id" : { "$oid" : "59e47187fd6cea0b9cb4e724" },
+ * "url" : "/people/0",
+ * "name" : "user0",
+ * "groups" : [
+ * { "url" : "/group/3", "time" : { "$date" : 1508142666764 } },
+ * { "url" : "/group/13", "time" : { "$date" : 1508142824565 } },
+ * { "url" : "/group/0", "time" : { "$date" : 1508143309339 } }
+ * ]
  * }
- *
+ * <p>
  * {
- *  "_id" : { "$oid" : "59e47187fd6cea0b9cb4e725" },
- *  "url" : "/people/1",
- *  "name" : "user1",
- *  "join_groups" : [
- *                   { "group_url" : "/group/2", "time" : { "$date" : 1508142568434 } },
- *                   { "group_url" : "/group/10", "time" : { "$date" : 1508142636361 } },
- *                   { "group_url" : "/group/9", "time" : { "$date" : 1508143183172 } },
- *                   { "group_url" : "/group/5", "time" : { "$date" : 1508143325771 } }
- *                   ]
- *}
+ * "_id" : { "$oid" : "59e47187fd6cea0b9cb4e725" },
+ * "url" : "/people/1",
+ * "name" : "user1",
+ * "join_groups" : [
+ * { "group_url" : "/group/2", "time" : { "$date" : 1508142568434 } },
+ * { "group_url" : "/group/10", "time" : { "$date" : 1508142636361 } },
+ * { "group_url" : "/group/9", "time" : { "$date" : 1508143183172 } },
+ * { "group_url" : "/group/5", "time" : { "$date" : 1508143325771 } }
+ * ]
+ * }
  */
 public class MongoDataGen {
 
@@ -106,6 +116,44 @@ public class MongoDataGen {
         Random rd = new Random();
         List<Document> gdocuments = getGDocs(rd);
         collection.insertMany(gdocuments);
+    }
+
+    public void genRelData() {
+        MongoCollection<Document> collection = database.getCollection("rel");
+        Random random = new Random();
+        List<Document> documents = getRelDocs(random);
+        collection.insertMany(documents);
+    }
+
+    private HashMap<Integer, List<String>> getTags() {
+        HashMap<Integer, List<String>> hashMap = new HashMap<>();
+        Random rd = new Random();
+        for (int i = 0; i < gnameArrayLen; i++) {
+            hashMap.put(i, getTags(rd));
+        }
+
+        hashMap.forEach((k,v)->System.out.println(
+                k+"|"+String.join("-",v)
+        ));
+
+        return hashMap;
+    }
+
+    private List<Document> getRelDocs(Random rd) {
+        List<Document> documents = new ArrayList<>();
+        HashMap<Integer, List<String>> hashMap = getTags();
+        for (int i = 0; i < unameArrayLen; i++) {
+            for (int j = 0; j < gnameArrayLen; j++) {
+                Document doc = new Document("url", "/people/" + i)
+                        .append("name", unameArray[i])
+                        .append("gname", gnameArray[j])
+                        .append("gurl", "/group/" + j)
+                        .append("time", new Date(System.currentTimeMillis() - rd.nextInt(1000000)))
+                        .append("tags", hashMap.get(j));
+                documents.add(doc);
+            }
+        }
+        return documents;
     }
 
     public void printColectionNames() {
@@ -169,7 +217,7 @@ public class MongoDataGen {
     public void delAll(String collectionName) {
         MongoCollection<Document> collection = database.getCollection(collectionName);
         collection.drop();
-        System.out.println(database.getCollection(collectionName) == null ? "finish del collection "+collectionName : "del collection "+collectionName+" fail");
+        System.out.println(database.getCollection(collectionName) == null ? "finish del collection " + collectionName : "del collection " + collectionName + " fail");
     }
 
 
@@ -193,19 +241,23 @@ public class MongoDataGen {
         mongoDataGen.printColectionNames();
 
         //del collection
-        mongoDataGen.delAll("People");
-        mongoDataGen.delAll("Group");
+//        mongoDataGen.delAll("People");
+//        mongoDataGen.delAll("Group");
+//        mongoDataGen.delAll("UserPattern");
+        mongoDataGen.delAll("rel");
 
         //list exist collection names
         mongoDataGen.printColectionNames();
 
         //generate data
-        mongoDataGen.genUserData();
-        mongoDataGen.genGroupData();
+//        mongoDataGen.genUserData();
+//        mongoDataGen.genGroupData();
+        mongoDataGen.genRelData();
 
         //search
-        mongoDataGen.search("People");
-        mongoDataGen.search("Group");
+//        mongoDataGen.search("People");
+//        mongoDataGen.search("Group");
+        mongoDataGen.search("rel");
     }
 
 }

@@ -5,20 +5,20 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.spark.MongoSpark;
 import com.mongodb.spark.rdd.api.java.JavaMongoRDD;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.bson.Document;
+import scala.Tuple2;
 
+import java.io.Serializable;
 import java.util.*;
-
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Updates.set;
 
 
 /**
  * Created by Cristph on 2017/10/16.
  */
-public class SparkStreaming {
+public class SparkRDD implements Serializable {
 
     private static MongoClient mongoClient;
     private static MongoDatabase database;
@@ -43,45 +43,42 @@ public class SparkStreaming {
     }
 
     public void generateUserPattern() {
-
-        MongoCollection<Document> collection = getMongodbCollection("test", "UserPattern");
-        JavaSparkContext peopleJsc = getJsc("People");
+        System.out.println("===================in method=======================");
+        JavaSparkContext peopleJsc = getJsc("rel");
         JavaMongoRDD<Document> peopleRdd = MongoSpark.load(peopleJsc);
+        System.out.println("==============" + peopleRdd == null ? "rdd null" : "rdd not null" + "==================");
+        System.out.println("================" + peopleRdd.first() == null ? "null" : peopleRdd.first().toJson() + "==================");
 
         //构造mongodb数据流
-        Document unwind = Document.parse("{$unwind:\"$join_groups\"}");
-        Document sort = Document.parse("{$sort:{\"join_groups.time\":1}}");
-        List<Document> operations = Arrays.asList(new Document[]{unwind, sort});
-        JavaMongoRDD<Document> aggregatedRdd = peopleRdd.withPipeline(operations);
+//        Document sort = Document.parse("{$sort:{\"time\":1}}");
+//        List<Document> operations = Arrays.asList(new Document[]{matchAll, sort});
+        JavaMongoRDD<Document> aggregatedRdd = peopleRdd.withPipeline(
+                Collections.singletonList(Document.parse("{$sort:{\"time\":1}}"))
+        );
+
+
+        System.out.println("================" + aggregatedRdd.first() == null ? "null" : aggregatedRdd.first().toJson() + "==================");
 
         //流计算得到实时更新的用户画像
-        aggregatedRdd
-                .map(document -> {
-                    String uname = (String) document.get("name");
-                    Document doc = collection.find(new Document("name", uname)).first();
-
-                    String gname = (String) document.get("ganme");
-                    List<String> newTags = (List<String>) collection.find(eq("gname", gname)).first().get("tags");
-                    if (doc != null) {
-                        List<String> tags = (List<String>) doc.get("tags");
-                        mergeTags(tags, newTags);
-                        return new Document("exist", "-1")
-                                .append("tags", tags);
-                    } else {
-                        return new Document("exist", "1")
-                                .append("doc", document.put("tags", newTags));
-                    }
-                })
-                .foreach(document -> {
-                    if ((int) document.get("exist") == 1) {
-                        collection.insertOne((Document) document.get("doc"));
-                    } else {
-                        collection.updateOne(eq("name", document.get("name")), set("tags", document.get("tags")));
-                    }
-                });
+        JavaPairRDD<String, Document> pairRDD = aggregatedRdd.mapToPair(doc ->
+                new Tuple2(doc.get("name"), doc));
+        JavaPairRDD<String, Document> result = pairRDD.reduceByKey((a, b) -> {
+                    List<String> source = (List<String>) a.get("tags");
+                    List<String> tmp = (List<String>) b.get("tags");
+                    tmp.forEach(s -> {
+                        if (!tmp.contains(s)) {
+                            source.add(s);
+                        }
+                    });
+                    a.replace("tas", source);
+                    return a;
+                }
+        );
+        result.filter(doc ->
+                ((String) doc._2().get("name")).endsWith("5"))
+                .foreach(doc -> System.out.println(doc._2().toJson()));
 
         //检验数据流输出
-
         peopleJsc.close();
     }
 
@@ -95,7 +92,7 @@ public class SparkStreaming {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        SparkStreaming sparkStreaming = new SparkStreaming();
+        SparkRDD sparkStreaming = new SparkRDD();
         sparkStreaming.generateUserPattern();
     }
 }
